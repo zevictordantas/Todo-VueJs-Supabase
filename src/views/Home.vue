@@ -8,38 +8,79 @@
     <ul>
       <li v-for="tarefa in tarefas" :key="tarefa.id">
         {{tarefa.titulo}}
-        <button v-on:click="concluirTarefa()">✔</button>
+        <button v-on:click="concluirTarefa(tarefa)">✔</button>
       </li>
     </ul>
   </div>
 </template>
 
 <script>
+import supabase from '../supabase-client';
+
 export default {
   name: 'Home',
   data: () => {
     return {
       titulo: '',
-      tarefas: [
-        { id: 1, titulo: 'Tarefa 1' },
-        { id: 2, titulo: 'Tarefa 2' },
-        { id: 3, titulo: 'Tarefa 3' }
-      ]
+      tarefas: []
     };
   },
   methods: {
-    adicionarTarefa() {
-      this.tarefas.push({
-        id: 4,
-        titulo: this.titulo
-      });
-      this.titulo = '';
+    async adicionarTarefa() {
+      // this.tarefas.push({
+      //   id: 4,
+      //   titulo: this.titulo
+      // });
+      // this.titulo = '';
+      try {
+
+        const res = await supabase.from('tarefas')
+          .insert({
+            user_id: supabase.auth.user().id,
+            titulo: this.titulo
+          });
+
+        if (res.error) {
+          alert(res.error.message);
+        } else {
+          // DEU CERTO!
+          this.titulo = '';
+          this.carregarTarefas();
+          // this.tarefas.push(res.data[0]);
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Não foi possível cadastrar a tarefa!');
+      }
     },
     concluirTarefa(tarefa) {
       // const idx = this.tarefas.indexOf(tarefa);
       // this.tarefas.splice(idx, 1);
       this.tarefas = this.tarefas.filter(x => x !== tarefa);
+    },
+    async carregarTarefas() {
+      try {
+
+        const res = await supabase.from('tarefas')
+          .select('id, titulo')
+          .filter('concluida', 'eq', false);
+
+        if (res.error) {
+          alert(res.error.message);
+        } else {
+          // DEU CERTO!
+          this.tarefas = res.data;
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Não foi possível carregar suas tarefas!');
       }
+    }
+  },
+  mounted() {
+    this.carregarTarefas();
   },
   components: {}
 }
